@@ -1,0 +1,4 @@
+-c small-test.txt
+alembic
+alembic-autogen-check
+selenium

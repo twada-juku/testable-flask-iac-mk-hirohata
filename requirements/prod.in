@@ -1,0 +1,6 @@
+Flask
+gunicorn
+SQLAlchemy
+pg8000
+Flask-WTF
+google-cloud-storage

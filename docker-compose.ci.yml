@@ -1,0 +1,38 @@
+# GitHub Actions 上で動かすときの差分を定義する
+
+version: '3.7'
+
+services:
+
+  web-test:
+    # CI では本番用イメージを E2E テストで動かしたい
+    image: testable-flask-iac_stage-prod
+    # 実行コマンドも本番と同様にする
+    command: gunicorn --config /opt/app/stacks/gunicorn.conf.py
+
+  # Medium テスト実行用
+  medium-test:
+    depends_on:
+      - db-test
+      - fake-gcs-server
+    image: testable-flask-iac_stage-dev
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_APP=stacks
+      - FLASK_ENV=development
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql+pg8000://postgres:${DEV_DB_PASSWORD}@db-test:5433/stacks_test
+    entrypoint: /app/docker-entrypoint/medium-test-on-ci.sh
+
+  # 本番 DB (Cloud SQL Proxy 経由でアクセス)
+  db-prod:
+    image: gcr.io/cloudsql-docker/gce-proxy:1.31.0
+    command: >
+      /cloud_sql_proxy
+      -instances=${GCP_INSTANCE_CONNECTION_NAME}=tcp:0.0.0.0:5432
+      -token=${CLOUD_SQL_PROXY_AUTH_TOKEN}
+      -log_debug_stdout=true

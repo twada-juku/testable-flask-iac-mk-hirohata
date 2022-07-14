@@ -1,0 +1,15 @@
+{% macro render_field(field) %}
+  {{ field.label(class='form-label') }}
+  {% if field.errors %}
+    {% set css_class = 'form-control is-invalid ' + kwargs.pop('class', '') %}
+    {{ field(class=css_class, **kwargs) }}
+    <ul class="invalid-feedback">
+      {% for error in field.errors %}
+        <li class="validation-error-detail">{{ error|e }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    {% set css_class = 'form-control ' + kwargs.pop('class', '') %}
+    {{ field(class=css_class, **kwargs)|safe }}
+  {% endif %}
+{% endmacro %}

@@ -1,0 +1,137 @@
+version: '3.7'
+
+services:
+
+  # Flask Web アプリ
+  web-dev:
+    depends_on:
+      - db-dev
+      - fake-gcs-server
+    image: testable-flask-iac_stage-dev
+    init: true
+    stdin_open: true
+    tty: true
+    ports:
+      - "5050:5000"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=5000
+      - FLASK_APP=stacks
+      - FLASK_ENV=development
+      - FLASK_SKIP_DOTENV=1
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql+pg8000://postgres:${DEV_DB_PASSWORD}@db-dev/stacks_development
+    command: python -m flask run --host=0.0.0.0 --port=5000
+
+  # DB サーバー
+  db-dev:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DEV_DB_PASSWORD}
+      - POSTGRES_DB=stacks_development
+    volumes:
+      - db-dev_data:/var/lib/postgresql/data
+
+  # ローカル環境への migration など開発作業を行うコンテナ
+  dev:
+    depends_on:
+      - db-dev
+      - fake-gcs-server
+    image: testable-flask-iac_stage-dev
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql+pg8000://postgres:${DEV_DB_PASSWORD}@db-dev/stacks_development
+    entrypoint: /app/docker-entrypoint/dev.sh
+
+  # テスト用 Web アプリ
+  web-test:
+    depends_on:
+      - db-test
+      - fake-gcs-server
+    image: testable-flask-iac_stage-dev
+    init: true
+    stdin_open: true
+    tty: true
+    ports:
+      - "5051:5000"
+    volumes:
+      - .:/app
+    environment:
+      - PORT=5000
+      - FLASK_APP=stacks
+      - FLASK_ENV=development
+      - FLASK_SKIP_DOTENV=1
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql+pg8000://postgres:${DEV_DB_PASSWORD}@db-test:5433/stacks_test
+    command: python -m flask run --host=0.0.0.0 --port=5000
+
+  # テスト用 DB サーバー
+  db-test:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DEV_DB_PASSWORD}
+      - POSTGRES_DB=stacks_test
+    volumes:
+      - db-test_data:/var/lib/postgresql/data
+    command: -p 5433
+
+  # migration やテストなど開発作業を行うコンテナ
+  test:
+    depends_on:
+      - web-test
+      - db-test
+      - selenium-chrome
+    image: testable-flask-iac_stage-dev
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_APP=stacks
+      - FLASK_ENV=development
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql+pg8000://postgres:${DEV_DB_PASSWORD}@db-test:5433/stacks_test
+    entrypoint: /app/docker-entrypoint/test.sh
+
+  # GCS の Fake Server
+  fake-gcs-server:
+    image: fsouza/fake-gcs-server
+    ports:
+      - "4443:4443"
+    volumes:
+      - ./tests/misc/fake-gcs:/data
+    command: -scheme http -port 4443 -external-url http://fake-gcs-server:4443 -public-host localhost
+
+  # E2E テスト用 Selenium サーバー
+  selenium-chrome:
+    # M1 Mac でも動くように seleniarm イメージを使う
+    image: seleniarm/standalone-chromium:4.2.1-20220602
+    logging:
+      driver: none
+    ports:
+      - "4444:4444" # Selenium クライアントからアクセスするポート
+      - "5900:5900" # VNC クライアントからアクセスするポート
+
+  # インフラ構築用
+  iac:
+    image: testable-flask-iac_iac
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - ./.gcloud-config:/root/.config/gcloud
+
+volumes:
+  # DB の格納先
+  db-dev_data:
+  db-test_data:

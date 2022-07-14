@@ -1,0 +1,16 @@
+{% extends 'base.html.jinja' %}
+
+{% block title %}プロジェクト詳細{% endblock %}
+
+{% block section_title %}{{ project.name }}{% endblock %}
+
+{% block content %}
+<dl>
+  <dt>名称</dt>
+  <dd>{{ project.name }}</dd>
+  <dt>URL名</dt>
+  <dd>{{ project.url_name }}</dd>
+</dl>
+
+<a href="{{ url_for('projects.index') }}">プロジェクト一覧に戻る</a>
+{% endblock %}

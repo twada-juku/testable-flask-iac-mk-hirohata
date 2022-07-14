@@ -1,0 +1,18 @@
+{% extends 'base.html.jinja' %}
+
+{% block title %}技術詳細{% endblock %}
+
+{% block section_title %}{{ technology.name }}{% endblock %}
+
+{% block content %}
+<dl>
+  <dt>名称</dt>
+  <dd>{{ technology.name }}</dd>
+  <dt>URL名</dt>
+  <dd>{{ technology.url_name }}</dd>
+  <dt>アイコン</dt>
+  <dd><img src="{{ technology.icon_url }}" alt="Icon for {{ technology.name }}" class="img-thumbnail" /></dd>
+</dl>
+
+<a href="{{ url_for('technologies.index') }}">技術一覧に戻る</a>
+{% endblock %}

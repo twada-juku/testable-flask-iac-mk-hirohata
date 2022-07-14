@@ -1,0 +1,34 @@
+# 本番 DB 接続用定義
+
+version: '3.7'
+
+services:
+
+  # 本番 DB (Cloud SQL Proxy 経由でアクセス)
+  db-prod:
+    image: gcr.io/cloudsql-docker/gce-proxy:1.31.0
+    ports:
+      - 5432:5432
+    restart: unless-stopped
+    volumes:
+      - ./.db-client-credential.json:/config
+    command: >
+      /cloud_sql_proxy
+      -instances=${GCP_INSTANCE_CONNECTION_NAME}=tcp:0.0.0.0:5432
+      -credential_file=/config
+      -log_debug_stdout=true
+
+  # 本番 DB 接続用環境
+  prod:
+    depends_on:
+      - db-prod
+    # migration などを行うので開発用イメージを使う
+    image: testable-flask-iac_stage-dev
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql+pg8000://${PROD_DB_USER}:${PROD_DB_PASSWORD}@db-prod:5432/${PROD_DB_NAME}
+    entrypoint: /app/docker-entrypoint/prod.sh

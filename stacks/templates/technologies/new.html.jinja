@@ -1,0 +1,22 @@
+{% extends 'base.html.jinja' %}
+{% from "_formhelpers.html.jinja" import render_field %}
+
+{% block title %}技術新規登録{% endblock %}
+
+{% block section_title %}技術新規登録{% endblock %}
+
+{% block content %}
+<form method="POST" action="{{ url_for('technologies.create') }}" enctype="multipart/form-data">
+  {{ form.csrf_token }}
+  <div class="mb-3">
+    {{ render_field(form.name) }}
+  </div>
+  <div class="mb-3">
+    {{ render_field(form.url_name) }}
+  </div>
+  <div class="mb-3">
+    {{ render_field(form.icon) }}
+  </div>
+  <button name="submit-button" type="submit" class="btn btn-primary">登録</button>
+</form>
+{% endblock %}
